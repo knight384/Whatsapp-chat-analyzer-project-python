@@ -93,7 +93,11 @@ python app.py
 
 Then open the local address shown in the console (typically http://127.0.0.1:5000) and upload or paste a chat file. The app generates an interactive report (report.html) in reports/ or shows results in-browser. 
 GitHub
+OCR (image input)
 
+If you have screenshots instead of exported text, run the OCR helper if you installed OCR tools:
+
+python check_ocr.py --image path/to/screenshot.png --out extracted_chat.txt
 
 
 Then feed extracted_chat.txt to main.py. See SETUP_OCR.md for platform-specific instructions. 
