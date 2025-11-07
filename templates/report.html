@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WhatsApp Chat Analysis - Report</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .insights-section {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      padding: 25px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      border-left: 5px solid #667eea;
+    }
+    .insights-list {
+      list-style: none;
+      padding: 0;
+    }
+    .insights-list li {
+      padding: 10px 0;
+      font-size: 1.1em;
+      border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+    }
+    .insights-list li:last-child {
+      border-bottom: none;
+    }
+    .section-title {
+      color: #667eea;
+      margin: 30px 0 20px 0;
+      font-size: 1.5em;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 10px;
+    }
+    .user-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .user-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-left: 4px solid #667eea;
+    }
+    .user-card h4 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 25px;
+      background: #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.9em;
+      transition: width 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1>📊 Analysis Report</h1>
+        <p class="subtitle">Comprehensive WhatsApp Chat Insights</p>
+      </div>
+
+      <!-- Key Statistics -->
+      <div class="summary">
+        <div class="summary-card">
+          <h3>Total Messages</h3>
+          <div class="value">{{ summary['total_messages'] | int | string | replace(',', ',') }}</div>
+        </div>
+        <div class="summary-card">
+          <h3>Media Files</h3>
+          <div class="value">{{ summary['media_count'] | int | string | replace(',', ',') }}</div>
+        </div>
+        <div class="summary-card">
+          <h3>Links Shared</h3>
+          <div class="value">{{ summary.get('link_count', 0) | int | string | replace(',', ',') }}</div>
+        </div>
+        <div class="summary-card">
+          <h3>Questions Asked</h3>
+          <div class="value">{{ summary.get('question_count', 0) | int | string | replace(',', ',') }}</div>
+        </div>
+        <div class="summary-card">
+          <h3>Emojis Used</h3>
+          <div class="value">{{ summary['emoji_count'] | int | string | replace(',', ',') }}</div>
+        </div>
+        <div class="summary-card">
+          <h3>Avg Message Length</h3>
+          <div class="value">{{ summary.get('avg_message_length', 0) | int }} chars</div>
+        </div>
+      </div>
+
+      <!-- AI Insights -->
+      {% if summary.get('insights') %}
+      <div class="insights-section">
+        <h2 class="section-title">🤖 AI-Powered Insights</h2>
+        <ul class="insights-list">
+          {% for insight in summary['insights'] %}
+          <li>{{ insight }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <!-- Date Range -->
+      {% if summary.get('first_date') and summary.get('last_date') %}
+      <div style="background: #f8f9ff; padding: 15px; border-radius: 8px; margin-bottom: 30px;">
+        <strong>📅 Chat Period:</strong> {{ summary['first_date'] }} to {{ summary['last_date'] }}
+        <br>
+        <strong>📆 Duration:</strong> {{ summary.get('total_days', 0) }} days
+        <br>
+        <strong>💬 Average:</strong> {{ summary.get('messages_per_day_avg', 0) }} messages per day
+      </div>
+      {% endif %}
+
+      <!-- User Statistics -->
+      <h2 class="section-title">👥 User Statistics</h2>
+      <div class="user-stats">
+        {% for user, cnt in summary['per_user'].most_common() %}
+        <div class="user-card">
+          <h4>{{ user }}</h4>
+          <div><strong>{{ cnt | int | string | replace(',', ',') }}</strong> messages</div>
+          {% if summary.get('user_percentages') and user in summary['user_percentages'] %}
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ summary['user_percentages'][user] }}%">
+              {{ "%.1f" | format(summary['user_percentages'][user]) }}%
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Messages per Day Chart -->
+      {% if per_day_dates and per_day_counts %}
+      <h2 class="section-title">📈 Messages Over Time</h2>
+      <div class="chart-container">
+        <canvas id="perDayChart"></canvas>
+      </div>
+      {% endif %}
+
+      <!-- Messages per Hour Chart -->
+      {% if per_hour_hours and per_hour_counts %}
+      <h2 class="section-title">⏰ Activity by Hour</h2>
+      <div class="chart-container">
+        <canvas id="perHourChart"></canvas>
+      </div>
+      {% endif %}
+
+      <!-- Messages per Weekday Chart -->
+      {% if per_weekday_labels and per_weekday_counts %}
+      <h2 class="section-title">📅 Activity by Day of Week</h2>
+      <div class="chart-container">
+        <canvas id="perWeekdayChart"></canvas>
+      </div>
+      {% endif %}
+
+      <!-- Active Periods Chart -->
+      {% if period_labels and period_counts %}
+      <h2 class="section-title">🌅 Activity by Time of Day</h2>
+      <div class="chart-container">
+        <canvas id="periodChart"></canvas>
+      </div>
+      {% endif %}
+
+      <!-- Top Words -->
+      <h2 class="section-title">🔤 Top Words</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Word</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for word, cnt in summary['top_words'] %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td><strong>{{ word }}</strong></td>
+            <td>{{ cnt | int | string | replace(',', ',') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Longest Message -->
+      {% if summary.get('longest_message') %}
+      <h2 class="section-title">📝 Longest Message</h2>
+      <div style="background: #f8f9ff; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <p style="font-style: italic; color: #666; line-height: 1.6;">"{{ summary['longest_message'] }}"</p>
+        <p style="margin-top: 10px; color: #888;"><strong>Length:</strong> {{ summary.get('longest_message_length', 0) }} characters</p>
+      </div>
+      {% endif %}
+
+      <!-- Action Buttons -->
+      <div class="actions" style="margin-top: 40px; padding-top: 30px; border-top: 2px solid #e5e7eb;">
+        <a class="btn btn-primary" href="{{ report_url }}" target="_blank">📄 Open Full HTML Report</a>
+        <a class="btn btn-secondary" href="{{ csv_url }}">📊 Download CSV</a>
+        <a class="btn btn-secondary" href="{{ url_for('index') }}">🔄 Analyze Another File</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { precision: 0 }
+        }
+      }
+    };
+
+    // Per Day Chart
+    {% if per_day_dates and per_day_counts %}
+    const perDayCtx = document.getElementById('perDayChart');
+    if (perDayCtx) {
+      new Chart(perDayCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: {{ per_day_dates | tojson }},
+          datasets: [{
+            label: 'Messages per day',
+            data: {{ per_day_counts | tojson }},
+            borderColor: 'rgb(102, 126, 234)',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: chartOptions
+      });
+    }
+    {% endif %}
+
+    // Per Hour Chart
+    {% if per_hour_hours and per_hour_counts %}
+    const perHourCtx = document.getElementById('perHourChart');
+    if (perHourCtx) {
+      new Chart(perHourCtx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: {{ per_hour_hours | tojson }},
+          datasets: [{
+            label: 'Messages per hour',
+            data: {{ per_hour_counts | tojson }},
+            backgroundColor: 'rgba(102, 126, 234, 0.7)',
+            borderColor: 'rgb(102, 126, 234)',
+            borderWidth: 1
+          }]
+        },
+        options: chartOptions
+      });
+    }
+    {% endif %}
+
+    // Per Weekday Chart
+    {% if per_weekday_labels and per_weekday_counts %}
+    const perWeekdayCtx = document.getElementById('perWeekdayChart');
+    if (perWeekdayCtx) {
+      new Chart(perWeekdayCtx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: {{ per_weekday_labels | tojson }},
+          datasets: [{
+            label: 'Messages per weekday',
+            data: {{ per_weekday_counts | tojson }},
+            backgroundColor: 'rgba(118, 75, 162, 0.7)',
+            borderColor: 'rgb(118, 75, 162)',
+            borderWidth: 1
+          }]
+        },
+        options: chartOptions
+      });
+    }
+    {% endif %}
+
+    // Period Chart
+    {% if period_labels and period_counts %}
+    const periodCtx = document.getElementById('periodChart');
+    if (periodCtx) {
+      new Chart(periodCtx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: {{ period_labels | tojson }},
+          datasets: [{
+            data: {{ period_counts | tojson }},
+            backgroundColor: [
+              'rgba(102, 126, 234, 0.8)',
+              'rgba(118, 75, 162, 0.8)',
+              'rgba(236, 72, 153, 0.8)',
+              'rgba(59, 130, 246, 0.8)'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+            }
+          }
+        }
+      });
+    }
+    {% endif %}
+  </script>
+</body>
+</html>

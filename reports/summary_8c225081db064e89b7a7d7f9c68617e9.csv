@@ -1,0 +1,13 @@
+metric,key,value
+total_messages,,0
+media_count,,0
+emoji_count,,0
+link_count,,0
+question_count,,0
+avg_message_length,,0.0
+total_days,,1
+messages_per_day_avg,,0.00
+
+per_user,user,count,percentage
+
+top_words,word,count

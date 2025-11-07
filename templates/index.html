@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WhatsApp Chat Analyzer - AI-Powered Analysis</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1>📱 WhatsApp Chat Analyzer</h1>
+        <p class="subtitle">AI-Powered Chat Analysis Tool</p>
+        <p class="description">Upload your WhatsApp chat export (.txt) or screenshot to get comprehensive insights, statistics, and visualizations</p>
+      </div>
+
+      <form method="post" action="/upload" enctype="multipart/form-data" id="uploadForm">
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-content">
+            <div class="upload-icon">📄</div>
+            <h3>Drag & Drop your file here</h3>
+            <p>or <span class="browse-link">browse</span> to choose a file</p>
+            <p class="file-types">Supports: .txt files and images (PNG, JPG, JPEG, GIF, BMP, WEBP)</p>
+            <p class="file-note" style="font-size: 0.85em; color: #888; margin-top: 10px;">
+              💡 <strong>Note:</strong> Text files work immediately. Image uploads require OCR setup (see instructions below).
+            </p>
+          </div>
+          <input type="file" name="file" id="fileInput" accept=".txt,.png,.jpg,.jpeg,.gif,.bmp,.webp" required>
+        </div>
+
+        <div class="file-info" id="fileInfo" style="display: none;">
+          <div class="file-details">
+            <span class="file-name" id="fileName"></span>
+            <button type="button" class="remove-file" id="removeFile">×</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="field">
+            <span>Top N Words to Analyze</span>
+            <input type="number" name="top" value="20" min="1" max="200" class="number-input">
+          </label>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <span class="btn-text">🚀 Analyze Chat</span>
+            <span class="btn-loader" style="display: none;">⏳ Analyzing...</span>
+          </button>
+        </div>
+      </form>
+
+      <div class="features">
+        <h3>✨ Features</h3>
+        <div class="feature-grid">
+          <div class="feature-item">
+            <span class="feature-icon">📊</span>
+            <span>Comprehensive Statistics</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">📈</span>
+            <span>Visual Charts & Graphs</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">🤖</span>
+            <span>AI-Powered Insights</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">🖼️</span>
+            <span>Screenshot Support (OCR)</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">📅</span>
+            <span>Time-based Analysis</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">💾</span>
+            <span>Export Reports</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="help">
+        <h3>ℹ️ How to Use</h3>
+        <ol>
+          <li><strong>Export your chat:</strong> Open WhatsApp → Select chat → More options → Export chat (without media)</li>
+          <li><strong>Upload the file:</strong> Drag and drop the .txt file or screenshot above</li>
+          <li><strong>Get insights:</strong> Click "Analyze Chat" to see comprehensive analysis</li>
+        </ol>
+        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+          <h4 style="margin-top: 0; color: #856404;">📸 For Image/Screenshot Uploads:</h4>
+          <p style="color: #856404; margin: 10px 0 0 0;">
+            Image processing requires Tesseract OCR. 
+            <strong>Text files (.txt) work immediately without any setup!</strong><br><br>
+            To enable image uploads:
+          </p>
+          <ol style="color: #856404; margin: 10px 0 0 20px;">
+            <li>Install: <code>pip install Pillow pytesseract</code></li>
+            <li>Download Tesseract OCR: <a href="https://github.com/UB-Mannheim/tesseract/wiki" target="_blank" style="color: #0066cc;">Windows Installer</a></li>
+            <li>Install Tesseract (use default path: C:\Program Files\Tesseract-OCR)</li>
+            <li>Restart your terminal/IDE</li>
+          </ol>
+        </div>
+        <div style="margin-top: 15px; padding: 15px; background: #e7f3ff; border-radius: 8px; border-left: 4px solid #2196F3;">
+          <h4 style="margin-top: 0; color: #1565C0;">💡 Troubleshooting:</h4>
+          <p style="color: #1565C0; margin: 10px 0 0 0;">
+            If you see all zeros after uploading:
+          </p>
+          <ol style="color: #1565C0; margin: 10px 0 0 20px;">
+            <li>Make sure you exported from WhatsApp as <strong>text file (.txt)</strong></li>
+            <li>Check that the file format is: <code>dd/mm/yyyy, hh:mm - Name: Message</code></li>
+            <li>Run diagnostic: <code>python diagnose_file.py your_chat.txt</code></li>
+            <li>Ensure the file is not empty and contains actual messages</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const removeFile = document.getElementById('removeFile');
+    const uploadForm = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoader = submitBtn.querySelector('.btn-loader');
+
+    // Drag and drop functionality
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      uploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      uploadArea.addEventListener(eventName, () => {
+        uploadArea.classList.add('drag-over');
+      }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      uploadArea.addEventListener(eventName, () => {
+        uploadArea.classList.remove('drag-over');
+      }, false);
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length > 0) {
+        fileInput.files = files;
+        const file = files[0];
+        handleFileSelect(file);
+        checkImageUpload(file);
+      }
+    }, false);
+
+    uploadArea.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        const file = e.target.files[0];
+        handleFileSelect(file);
+        // Check if it's an image and warn about OCR
+        checkImageUpload(file);
+      }
+    });
+
+    function checkImageUpload(file) {
+      const fileName = file.name.toLowerCase();
+      const isImage = fileName.endsWith('.png') || fileName.endsWith('.jpg') || 
+                      fileName.endsWith('.jpeg') || fileName.endsWith('.gif') || 
+                      fileName.endsWith('.bmp') || fileName.endsWith('.webp');
+      
+      if (isImage) {
+        // Show a warning about OCR requirements
+        const warning = document.createElement('div');
+        warning.id = 'ocr-warning';
+        warning.style.cssText = 'margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107; color: #856404;';
+        warning.innerHTML = `
+          <strong>⚠️ Image Upload Notice:</strong><br>
+          Image processing requires Tesseract OCR to be installed.<br>
+          <strong>Text files (.txt) work immediately without any setup!</strong><br><br>
+          If you see an error, please install Tesseract OCR or use a text file instead.
+        `;
+        
+        // Remove existing warning if any
+        const existingWarning = document.getElementById('ocr-warning');
+        if (existingWarning) {
+          existingWarning.remove();
+        }
+        
+        // Insert warning after file info
+        fileInfo.parentNode.insertBefore(warning, fileInfo.nextSibling);
+      } else {
+        // Remove warning if text file
+        const existingWarning = document.getElementById('ocr-warning');
+        if (existingWarning) {
+          existingWarning.remove();
+        }
+      }
+    }
+
+    function handleFileSelect(file) {
+      fileName.textContent = file.name;
+      fileInfo.style.display = 'block';
+      uploadArea.classList.add('file-selected');
+    }
+
+    removeFile.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fileInput.value = '';
+      fileInfo.style.display = 'none';
+      uploadArea.classList.remove('file-selected');
+    });
+
+    uploadForm.addEventListener('submit', () => {
+      btnText.style.display = 'none';
+      btnLoader.style.display = 'inline';
+      submitBtn.disabled = true;
+    });
+  </script>
+</body>
+</html>

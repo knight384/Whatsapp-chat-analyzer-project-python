@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Error - WhatsApp Chat Analyzer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1 style="color: #ef4444;">❌ Error</h1>
+        <p class="subtitle">Something went wrong</p>
+      </div>
+      <div style="background: #fef2f2; padding: 20px; border-radius: 8px; border-left: 4px solid #ef4444; margin: 20px 0;">
+        <pre style="color: #991b1b; font-size: 1em; white-space: pre-wrap; word-wrap: break-word; font-family: inherit; margin: 0;">{{ error_message }}</pre>
+      </div>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{ url_for('index') }}">← Go Back</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

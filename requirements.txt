@@ -1,0 +1,6 @@
+pandas
+python-dateutil
+Flask
+Pillow
+pytesseract
+openpyxl
